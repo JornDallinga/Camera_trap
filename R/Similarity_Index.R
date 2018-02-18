@@ -7,83 +7,27 @@ library(RStoolbox)
 
 
 
+dem <- raster('./Results/Criteria_data/dem_crit.tif')
+slope <- raster('./Results/Criteria_data/slope_crit.tif')
+precip <- raster('./Data/Climate/Precipitation/crop/precipitation.tif')
+temp <- raster('./Data/Climate/Temperature/crop/temperature.tif')
+hpi <- raster('./Results/hpi/hpi.tif')
 
 
 
-
-
-
-
-
-
-
-########
-
-set.seed(123)
-
-data("srtm")
-
-plot(srtm)
-
-temp <- srtm
-
-temp[] <- srtm[]*-.1 + 30 + rnorm(ncell(temp),sd = 1.5)
-
-slope <- terrain(srtm, unit = 'tangent')
-
-rain <- srtm
-
-df <- as.data.frame(srtm, xy = T)
-
-rain[] <- df$x/max(df$x) * 5 + (df$y/max(df$y))^(5/3) * 5 + rnorm(ncell(temp),sd = 0.01)
-
-s <- stack(srtm, slope, temp, rain)
-
-names(s) <- c('dem','slope','temp','pp')
-
-plot(s)
-
-# assuming only positive values
+s <- stack(dem, slope, precip, temp, hpi)
+names(s) <- c('dem','slope','precip','temp', 'hpi')
 
 scalefun <- function(r, precision = 2) {
-  v <- round((r - minValue(r)) / (maxValue(r) - minValue(r)),precision)
+  v <- round((s - minValue(s)) / (maxValue(s) - minValue(s)),precision)
   v[is.na(v)] <- 0 # avoid NA in flat terrains (slope layer)
   v
 }
 
-ss <- scalefun(s)
-
-
-plot(ss)
-
-##
-
-library(dplyr)
-
-cond <- as.data.frame(ss) %>% group_by(dem,slope,temp,pp) %>%
-  summarise(n = n()) %>% arrange(desc(n)) %>% head(1)
-
-cond
-
-# Coordinates 
-
-cond <- as.vector(unlist(cond))
-
-selected <- ss[[1]] == cond[1] & ss[[2]] == cond[2] & ss[[3]] == cond[3] & ss[[4]] == cond[4]
-
-selected <- as.data.frame(selected,xy = T)
-
-head(selected[selected[,3] == T,])
-
-
-
-
-##################################################
-
 
 #scale raster data
 s <- scale(s) 
-plot(s$dem)
+plot(dem)
 #arbitrary location you like:
 e <- drawExtent()
 

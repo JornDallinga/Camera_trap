@@ -9,7 +9,7 @@ if (!require(gdalUtils)) install.packages('gdalUtils')
 
 # Get data
 
-shape <- readOGR(dsn = "./Data/wetransfer-ccda5a/Data_Joeri/Extent", layer = "Joeri_Extent")
+shape <- readOGR(dsn = "./Data/Extent", layer = "Joeri_Extent")
 shape <- reproject(shape, CRS = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0', program = 'GDAL', method = 'near')
 
 #shape@bbox
@@ -32,14 +32,17 @@ temp <- list.files("./Data/Climate/Temperature/", pattern = ".tif", full.names =
 precip <- stack(precip)
 precip <- crop(precip, shape)
 precip <- calc(precip, fun = mean)
+precip <- resample(precip, dem, method="bilinear")
 
 # calc mean temperature
 temp <- stack(temp)
 temp <- crop(temp, shape)
 temp <- calc(temp, fun = mean)
+temp <- resample(temp, dem, method="bilinear")
 
-writeRaster(precip, filename = "./Data/Climate/Precipitation/crop/precipitation.tif")
-writeRaster(temp, filename = "./Data/Climate/Temperature/crop/temperature.tif")
+writeRaster(precip, filename = "./Data/Climate/Precipitation/crop/precipitation.tif", overwrite = T)
+writeRaster(temp, filename = "./Data/Climate/Temperature/crop/temperature.tif", overwrite = T)
+
 
 ### DEM
 
@@ -72,3 +75,13 @@ dem[dem > 1500] <- NA
 
 writeRaster(slope, filename = "./Results/Criteria_data/slope_crit.tif")
 writeRaster(dem, filename = "./Results/Criteria_data/dem_crit.tif")
+
+# HPI
+hpi <- raster('./Data/Human pressure Index/hpi/hpi_1_1000_16b_cmp.tif')
+shape <- reproject(shape, CRS = '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0', program = 'GDAL', method = 'bilinear')
+hpi <- crop(hpi, shape)
+hpi <- reproject(hpi, CRS = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0', program = 'GDAL', method = 'bilinear')
+hpi <- resample(hpi, dem, method="bilinear")
+
+dir.create("./Results/hpi", showWarnings = F)
+writeRaster(hpi, filename = './Results/hpi/hpi.tif', overwrite = T)
